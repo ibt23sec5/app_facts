@@ -1,4 +1,4 @@
-# Ansible Collection - ibt23sec5.system_show
+# Ansible Collection - ibt23sec5.factset
 
 ## Prerequisites
 At first you have to install the `psutil` python module on each node:
@@ -105,7 +105,7 @@ Retrieves several facts about operating system, actual state and configuration:
 ---
 - host: all
   collections:
-    - ibt23sec5.system_show
+    - ibt23sec5.factset
   tasks:
     # Returns all system facts
     - name: Get all system facts
