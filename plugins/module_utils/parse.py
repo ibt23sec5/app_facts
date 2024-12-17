@@ -7,6 +7,7 @@ import abc
 import json
 from configparser import ConfigParser
 
+import yaml
 import xmltodict
 
 from packages import get_files
@@ -96,9 +97,20 @@ class ConfXml(RawConfigBase):
         return xmltodict.parse(self.text)
 
 
-# Stores all subclasses of `RawConfigBase` class in this module
-parsers = {c.name: c for c in sys.modules[__name__].__dict__.values() if isinstance(c, type) and issubclass(c, RawConfigBase)}
+class ConfYaml(RawConfigBase):
+    name = "yaml"
+    extensions = ["yml", "yaml"]
+    def parse(self):
+        return xmltodict.parse(self.text)
 
+
+# Stores all subclasses of `RawConfigBase` class in this module
+parsers = {c.name: c for c in sys.modules[__name__].__dict__.values() if isinstance(c, type) and issubclass(c, RawConfigBase) and c.__name__ != "RawConfigBase"}
+
+def get_parser_by_ext(ext):
+    for parser in parsers.values():
+        if ext.lower() in parser.extensions:
+            return parser
 
 def parse(text, name):
     # print(parsers)
@@ -121,6 +133,7 @@ for name, paths in get_files(None, include):
         _, ext = os.path.splitext(path)
         if ext.startswith("."):
             ext = ext[1:]
-            if ext in parsers:
+            parser = get_parser_by_ext(ext)
+            if parser:
                 print(name, path, ext)
 
