@@ -6,6 +6,7 @@ import sys
 import abc
 import xml
 import json
+import glob
 import configparser
 
 import yaml
@@ -129,28 +130,82 @@ def get_parser_by_ext(ext):
         if ext.lower() in parser.extensions:
             return parser
 
+def get_parser_from_hints(path, hints):
+    for pattern, name in hints.items():
+        if path in glob.glob(pattern):
+            try:
+                parser_class = parsers[name]
+            except KeyError:
+                raise ParserNotFound(f"Parser <{name}> not defined")
+            return parser_class
+
+
 def parse(text, name):
-    # print(parsers)
     try:
         parser_class = parsers[name]
     except KeyError:
         raise ParserNotFound(f"Parser <{name}> not defined")
     return parser_class(text).parse()
 
-def test(path, parser_name):
-    with open(path) as f:
-        result = parse(f.read(), parser_name)
-        print(json.dumps(result))
 
-# test("/etc/tpm2-tss/fapi-profiles/P_ECCP256SHA256.json", "json")
+
+# def test(path, parser_name):
+#     with open(path) as f:
+#         result = parse(f.read(), parser_name)
+#         print(json.dumps(result))
+#
+# # test("/etc/tpm2-tss/fapi-profiles/P_ECCP256SHA256.json", "json")
+
+hints = {"/etc/abrt/plugins/*": "java.properties",
+         "/etc/yum.repos.d/*.repo": "conf.ini",
+         "/etc/xdg/autostart/*.desktop": "conf.ini",
+         "/etc/systemd/system/*.target": "conf.ini",
+         # "/etc/systemd/system/*.wants": "conf.ini",
+         "/etc/systemd/system/*.service": "conf.ini",
+         }
+
+errors = []
+
+def log(text):
+    errors.append(text)
+
 
 include = [r"^/etc*"]
+result = {}
 for name, paths in get_files(None, include):
     for path in paths:
-        _, ext = os.path.splitext(path)
-        if ext.startswith("."):
-            ext = ext[1:]
-            parser = get_parser_by_ext(ext)
-            if parser:
-                print(name, path, ext)
+        if not os.access(path, os.R_OK):
+            log(f"Unable read path<{path}>")
+            continue
+        # Try to determine the parser by pre-defined hint
+        parser = get_parser_from_hints(path, hints)
+        if not parser:
+            # Try to determine the parser by extension
+            _, ext = os.path.splitext(path)
+            if ext.startswith("."):
+                ext = ext[1:]
 
+                parser = get_parser_by_ext(ext)
+                if not parser:
+                    log(f"Unable to find a matching parser for path<{path}>")
+                    continue
+            else:
+                log(f"Unexisting extension, unable to determine matching parser for path<{path}>")
+                continue
+        with open(path) as f:
+            content = f.read()
+        try:
+            data = parser(content).parse()
+            # print(name, path, data)
+            if data:
+                if name not in result:
+                    result[name] = {path: data}
+                else:
+                    result[name][path] = data
+
+        except ParserSyntaxError as exc:
+            log(f"Unable to parse config file '{path}': {exc}")
+
+
+result["errors"] = errors
+print(json.dumps(result))
