@@ -4,8 +4,9 @@ import re
 import os
 import sys
 import abc
+import xml
 import json
-from configparser import ConfigParser
+import configparser
 
 import yaml
 import xmltodict
@@ -14,6 +15,11 @@ from packages import get_files
 
 class FactorParserError(Exception):
     pass
+
+
+class ParserSyntaxError(FactorParserError):
+    pass
+
 
 class ParserNotFound(FactorParserError):
     pass
@@ -69,40 +75,51 @@ class ConfJavaProperties(RawConfigBase):
     name = "java.properties"
     extensions = ["properties"]
     def parse(self):
-        unpacked = (line.split(self.delimiter) for line in self.lines if self.delimiter in line)
-        return {k.strip(): v.strip() for (k, v) in unpacked}
-
+        try:
+            unpacked = (line.split(self.delimiter) for line in self.lines if self.delimiter in line)
+            return {k.strip(): v.strip() for (k, v) in unpacked}
+        except Exception as exc: # TODO - too general
+            raise ParserSyntaxError(exc)
 
 class ConfIni(RawConfigBase):
     name = "conf.ini"
     extensions = ["conf", "ini"]
     def parse(self):
         result = {}
-        config = ConfigParser(strict=False, interpolation=None)
-        config.read_string(self.text)
-        return { s: dict(config.items(s)) for s in config.sections() }
+        config = configparser.ConfigParser(strict=False, interpolation=None)
+        try:
+            config.read_string(self.text)
+            return { s: dict(config.items(s)) for s in config.sections() }
+        except configparser.Error as exc:
+            raise ParserSyntaxError(exc)
 
 
 class ConfJson(RawConfigBase):
     name = "json"
     extensions = ["json"]
     def parse(self):
-        return json.loads(self.text)
-
+        try:
+            return json.loads(self.text)
+        except json.JSONDecodeError as exc:
+            raise ParserSyntaxError(exc)
 
 class ConfXml(RawConfigBase):
     name = "xml"
     extensions = ["xml"]
     def parse(self):
-        return xmltodict.parse(self.text)
-
+        try:
+            return xmltodict.parse(self.text)
+        except xml.parsers.expat.ExpatError as exc:
+            raise ParserSyntaxError(exc)
 
 class ConfYaml(RawConfigBase):
     name = "yaml"
     extensions = ["yml", "yaml"]
     def parse(self):
-        return xmltodict.parse(self.text)
-
+        try:
+            return yaml.safe_load(self.text)
+        except yaml.parser.ParserError as exc:
+            raise ParserSyntaxError(exc)
 
 # Stores all subclasses of `RawConfigBase` class in this module
 parsers = {c.name: c for c in sys.modules[__name__].__dict__.values() if isinstance(c, type) and issubclass(c, RawConfigBase) and c.__name__ != "RawConfigBase"}
