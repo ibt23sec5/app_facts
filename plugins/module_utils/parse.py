@@ -171,8 +171,9 @@ def log(text):
 
 
 include = [r"^/etc*"]
+exclude = [r"/etc/bash_completion.d/*"]
 result = {}
-for name, paths in get_files(None, include):
+for name, paths in get_files(None, include, exclude):
     for path in paths:
         if not os.access(path, os.R_OK):
             log(f"Unable read path<{path}>")

@@ -1,4 +1,5 @@
 import re
+import os
 
 try:
     import rpm
@@ -21,7 +22,7 @@ def get_files(match=None,
             if exclude_paths:
                 paths = [p for p in paths if not any(re.match(pm, p) for pm in exclude_paths)]
             if paths:
-                yield header["name"], paths
+                yield header["name"], [p for p in paths if os.path.isfile(p)]
 
 
 # import json
