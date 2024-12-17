@@ -24,7 +24,7 @@ def get_files(match=None,
                 yield header["name"], paths
 
 
-import json
-include = [r"^/etc*"]
-print(json.dumps({n: f for n, f in get_files(None, include)}))
+# import json
+# include = [r"^/etc*"]
+# print(json.dumps({n: f for n, f in get_files(None, include)}))
 

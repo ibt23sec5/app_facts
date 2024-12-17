@@ -48,6 +48,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 from abc import ABC, abstractmethod
 
+from ..module_utils.packages import get_files
 
 class AppFacts(ABC):
     @abstractmethod
