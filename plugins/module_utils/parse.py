@@ -7,6 +7,8 @@ import json
 
 from configparser import ConfigParser
 
+import xmltodict
+
 class FactorParserError(Exception):
     pass
 
@@ -74,12 +76,19 @@ class ConfJson(RawConfigBase):
     def parse(self):
         return json.loads(self.text)
 
+
+class ConfXml(RawConfigBase):
+    name = "xml"
+    def parse(self):
+        return xmltodict.parse(self.text)
+
+
 # Stores all subclasses of `RawConfigBase` class in this module
 parsers = {c.name: c for c in sys.modules[__name__].__dict__.values() if isinstance(c, type) and issubclass(c, RawConfigBase)}
 
 
 def parse(text, name):
-    print(parsers)
+    # print(parsers)
     try:
         parser_class = parsers[name]
     except KeyError:
@@ -91,5 +100,5 @@ def test(path, parser_name):
         result = parse(f.read(), parser_name)
         print(json.dumps(result))
 
-test("/etc/tpm2-tss/fapi-profiles/P_ECCP256SHA256.json", "1json")
+test("/etc/tpm2-tss/fapi-profiles/P_ECCP256SHA256.json", "json")
 
