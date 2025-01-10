@@ -82,6 +82,35 @@ class ConfJavaProperties(RawConfigBase):
         except Exception as exc: # TODO - too general
             raise ParserSyntaxError(exc)
 
+
+class ConfModprobe(RawConfigBase):
+    name = "modprobe"
+    extensions = ["c-onf"]
+    def parse(self):
+        try:
+            result = {}
+            for line in self.lines:
+                elements = line.split()
+                if len(elements) == 2:
+                    key, value = elements
+                    if key not in result:
+                        result[key] = [value]
+                    else:
+                        result[key].append(value)
+                elif len(elements) > 2:
+                    key, sub_key = elements[:2]
+                    options = elements[2:]
+                    if key not in result:
+                        result[key] = {sub_key:[]}
+                    # print(options)
+                    if options:
+                        result[key][sub_key].extend(options)
+            print(result)
+            return result
+        except Exception as exc: # TODO - too general
+            raise ParserSyntaxError(exc)
+
+
 class ConfIni(RawConfigBase):
     name = "conf.ini"
     extensions = ["conf", "ini"]
@@ -162,6 +191,7 @@ hints = {"/etc/abrt/plugins/*": "java.properties",
          "/etc/systemd/system/*.target": "conf.ini",
          # "/etc/systemd/system/*.wants": "conf.ini",
          "/etc/systemd/system/*.service": "conf.ini",
+         "/etc/modprobe.d/*": "modprobe",
          }
 
 errors = []
@@ -207,6 +237,5 @@ for name, paths in get_files(None, include, exclude):
         except ParserSyntaxError as exc:
             log(f"Unable to parse config file '{path}': {exc}")
 
-
 result["errors"] = errors
-print(json.dumps(result))
+# print(json.dumps(result))
