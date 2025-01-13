@@ -111,16 +111,14 @@ Retrieves several facts about operating system, actual state and configuration:
 ```yaml
 ---
 - host: all
-  collections:
-    - ibt23sec5.factset
   tasks:
     # Returns all system facts
     - name: Get all system facts
-      system_facts:
+      ibt23sec5.factset.system_facts:
 
     # Returns only cpu_percent and cpu_times subsets
     - name: Get CPU metrics
-      system_facts:
+      ibt23sec5.factset.system_facts:
         subsets:
           - cpu_percent
           - cpu_times
